@@ -37,9 +37,41 @@ public class TileManager : MonoBehaviour
 
     // 전체 타일 데이터를 저장하는 2차원 배열
     public TileData[,] tiles;
+    // -------------------- 2주차용 진행도 계산 필드 --------------------
+    // 전체 지뢰 개수
+    private int mineCount = 0;
 
+    //  현재 열린 타일 개수
+    private int openedTileCount = 0;
+    // "시작 안전구역 자동 오픈" 때 열린 타일 개수
+    // → 진행도 계산에서 빼기 위해 사용
+    private int initialOpenedCount = 0;
+    // 외부에서 읽을 수 있는 프로퍼티
+
+    public int OpenedTileCount => openedTileCount;
+    public int TotalTileCount => width * height;
+    public int NonMineTileCount => TotalTileCount - mineCount;
+
+    // 플레이어 진행도 기준 개방률
+    //  - 분자: openedTileCount - initialOpenedCount
+    //  - 분모: NonMineTileCount - initialOpenedCount
+    public float ProgressOpenRatio
+    {
+        get
+        {
+            int progressOpened = Mathf.Max(0, openedTileCount - initialOpenedCount);
+            int progressTotal = Mathf.Max(1, NonMineTileCount - initialOpenedCount);
+            return (float)progressOpened / progressTotal;
+        }
+    }
+
+    // 타일이 새로 열릴 때 알리는 이벤트
+    // (어떤 타일이 열렸는지, 현재 개방률이 얼마인지 전달)
+    public System.Action<TileData, float> OnTileOpened;
     private void Awake()
     {
+        // [추가] 혹시나 해서 시작 시 0으로 초기화
+        openedTileCount = 0;
         // 타일 배열 생성
         tiles = new TileData[width, height];
 
@@ -124,6 +156,8 @@ public class TileManager : MonoBehaviour
             tile.hasMine = true;
             placedMines++;
         }
+        // 실제 배치된 지뢰 개수를 기록
+        mineCount = placedMines;
 
         Debug.Log($"[TileManager] 지뢰 배치 완료: {placedMines}개 / 목표 {targetMineCount}개");
     }
@@ -211,7 +245,7 @@ public class TileManager : MonoBehaviour
     // - 지뢰면 무시 (지뢰 처리 로직은 TileInputController에서 담당)
     // - 이미 열린 칸이면 무시
     // - 주변 지뢰가 0이면 주변 칸들을 재귀적으로 계속 열어줌
-    public void OpenTile(Vector2Int pos, bool giveResource = true)
+    public void OpenTile(Vector2Int pos, bool giveResource = true, bool countForProgress = true)
     {
         TileData tile = GetTile(pos);
         if (tile == null)
@@ -230,12 +264,19 @@ public class TileManager : MonoBehaviour
         // 이 칸을 연다
         tile.state = TileState.Open;
         tileView.RenderTile(tile);
+        // -------------------- 진행도/트리거 처리 --------------------
+        // 지뢰는 애초에 열리지 않으므로 openedTileCount는 "지뢰가 아닌 열린 칸"만 센다.
+        openedTileCount++;
 
-        if (giveResource && ResourceManager.Instance != null)
+        // 시작 이후 플레이어가 연 타일만 진행도에 포함
+        if (countForProgress)
         {
-            ResourceManager.Instance.AddResource(1);
+            float ratio = ProgressOpenRatio;
+            OnTileOpened?.Invoke(tile, ratio);
         }
-
+        // ---------------------------------------------------------
+        
+        
         // 주변에 지뢰가 하나라도 있으면 여기까지만 열고 종료
         if (tile.surroundingMineCount > 0)
             return;
@@ -260,7 +301,7 @@ public class TileManager : MonoBehaviour
                     continue;
 
                 // 재귀 호출: 이미 열린 칸이면 내부에서 바로 return 되므로 무한루프 없음
-                OpenTile(neighborPos, giveResource);
+                OpenTile(neighborPos, giveResource, countForProgress);
             }
         }
     }
@@ -285,10 +326,14 @@ public class TileManager : MonoBehaviour
                 if (tile.hasMine)
                     continue;
 
-                // **시작 안전 구역은 무료 오픈 (giveResource = false)**
-                OpenTile(new Vector2Int(x, y), false);
+                // [중요] 시작 안전구역은
+                //  - 자원 지급 X (giveResource = false)
+                //  - 진행도/트리거에 포함 X (countForProgress = false)
+                OpenTile(new Vector2Int(x, y), giveResource: false, countForProgress: false);
             }
         }
+        // [중요] 여기까지 열린 타일 수를 "초기 오픈"으로 기록
+        initialOpenedCount = openedTileCount;
 
         Debug.Log("[TileManager] 중앙 안전 구역 자동 오픈 완료.");
     }
