@@ -11,16 +11,21 @@ public class DungeonManager : MonoBehaviour
     [SerializeField] private TileManager tileManager;       // 타일 정보 접근용
     [SerializeField] private GameObject dungeonIconPrefab;  // 1x1 던전 아이콘 프리팹
     [SerializeField] private GameObject baseIconPrefab;     // 중앙 기지 아이콘 프리팹
-
+    
+    [SerializeField] private AStarPathfinder pathfinder; // ★ 경로 탐색기 참조
     [Header("Settings")]
     [SerializeField] private int minDistanceFromBase = 9;   // 기지로부터 최소 거리(맨해튼)
 
     // 던전 하나를 표현하는 내부 데이터 구조
+    
     [System.Serializable]
     public class DungeonInstance
     {
         public Vector2Int position;     // 던전이 위치한 타일 좌표
         public GameObject iconObject;   // 화면에 보이는 아이콘 오브젝트
+
+        // ★ 3주차: 던전 → 기지까지의 이동 경로
+        public List<Vector2Int> pathToBase;
     }
 
     // 현재 활성화된 던전 목록
@@ -32,7 +37,7 @@ public class DungeonManager : MonoBehaviour
     // 중앙 기지(2x2) 영역 좌표 집합
     private readonly HashSet<Vector2Int> baseArea = new HashSet<Vector2Int>();
     private Vector2Int baseCenter;          // 기지 중심(대략적인 기준점)
-
+    public Vector2Int BaseCenter => baseCenter;
     private void Awake()
     {
         // 간단한 싱글톤 처리
@@ -46,6 +51,11 @@ public class DungeonManager : MonoBehaviour
         if (tileManager == null)
         {
             tileManager = FindObjectOfType<TileManager>();
+        }
+        // ★ A* 경로 탐색기 찾기
+        if (pathfinder == null)
+        {
+            pathfinder = FindObjectOfType<AStarPathfinder>();
         }
     }
 
@@ -201,9 +211,10 @@ public class DungeonManager : MonoBehaviour
             position = pos,
             iconObject = icon
         };
+        RecalculatePathForDungeon(instance);
         dungeons.Add(instance);
 
-        Debug.Log($"[DungeonManager] 던전 생성: {pos}");
+        Debug.Log($"[DungeonManager] 던전 생성: {pos}, 경로 길이 = {instance.pathToBase?.Count ?? 0}");
     }
     // [추가] 활성 던전 중 하나를 랜덤으로 반환 (없으면 null)
     public DungeonInstance GetRandomDungeon()
@@ -214,4 +225,53 @@ public class DungeonManager : MonoBehaviour
         int index = Random.Range(0, dungeons.Count);
         return dungeons[index];
     }
+    // ★ 특정 던전에 대해 베이스까지 경로를 다시 계산
+    private void RecalculatePathForDungeon(DungeonInstance dungeon)
+    {
+        if (pathfinder == null || tileManager == null)
+            return;
+
+        // baseCenter는 이미 InitializeBaseArea 에서 계산됨
+        List<Vector2Int> path = pathfinder.FindPath(dungeon.position, baseCenter);
+
+        dungeon.pathToBase = path;
+
+        if (path == null)
+        {
+            Debug.LogWarning($"[DungeonManager] 던전 {dungeon.position} 에서 기지까지 경로를 찾지 못했습니다.");
+        }
+    }
+
+    // ★ 모든 던전에 대해 경로 재계산
+    private void RecalculateAllDungeonPaths()
+    {
+        foreach (var dungeon in dungeons)
+        {
+            RecalculatePathForDungeon(dungeon);
+        }
+    }
+    private void OnEnable()
+    {
+        if (tileManager != null)
+        {
+            tileManager.OnTileOpened += HandleTileOpened;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (tileManager != null)
+        {
+            tileManager.OnTileOpened -= HandleTileOpened;
+        }
+    }
+
+    // ★ 타일이 열릴 때마다 호출되는 콜백
+    private void HandleTileOpened(TileData tile, float openRatio)
+    {
+        // 지금은 단순하게 전체 던전 경로를 다시 계산
+        // (맵이 커지면 최적화 여지를 나중에 검토)
+        RecalculateAllDungeonPaths();
+    }
+
 }

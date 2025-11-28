@@ -5,9 +5,11 @@ public class MonsterSpawner : MonoBehaviour
 {
     public static MonsterSpawner Instance { get; private set; }
 
+
     [Header("References")]
     [SerializeField] private DungeonManager dungeonManager;
 
+    [SerializeField] private AStarPathfinder pathfinder; // ★ 추가
     [Header("Monster Prefabs")]
     [SerializeField] private GameObject normalMonsterPrefab; // 일반형
     [SerializeField] private GameObject fastMonsterPrefab;   // 속행형
@@ -32,6 +34,10 @@ public class MonsterSpawner : MonoBehaviour
         if (dungeonManager == null)
         {
             dungeonManager = FindObjectOfType<DungeonManager>();
+        }
+        if (pathfinder == null)
+        {
+            pathfinder = FindObjectOfType<AStarPathfinder>();
         }
     }
 
@@ -89,10 +95,37 @@ public class MonsterSpawner : MonoBehaviour
                 continue;
 
             GameObject monsterObj = Instantiate(prefab, spawnPos, Quaternion.identity);
+
+            // 체력 초기화
             Monster monster = monsterObj.GetComponent<Monster>();
             if (monster != null)
             {
                 monster.Initialize(hpMultiplier);
+            }
+
+            // 이동 컴포넌트에 경로 설정
+            if (pathfinder != null && dungeonManager != null)
+            {
+                // 던전 위치에서 기지 중심까지의 경로 계산
+                // DungeonManager에 BaseCenter가 없다면, 새로 public 프로퍼티를 추가해 주세요.
+                Vector2Int start = dungeon.position;
+                Vector2Int goal = dungeonManager.BaseCenter;  // ★ BaseCenter 프로퍼티 필요
+
+                var path = pathfinder.FindPath(start, goal);
+
+                MonsterMover mover = monsterObj.GetComponent<MonsterMover>();
+                if (mover != null && path != null && path.Count > 0)
+                {
+                    mover.SetPath(path, dungeonManager.TileManager);
+                }
+                else if (path == null)
+                {
+                    Debug.LogWarning($"[MonsterSpawner] 경로를 찾지 못해 몬스터가 정지 상태입니다. start={start}, goal={goal}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[MonsterSpawner] pathfinder 또는 dungeonManager 참조가 없어 몬스터 이동을 설정할 수 없습니다.");
             }
 
             // 전역 스폰 인덱스 증가 (체력/수량 스케일링 기준)

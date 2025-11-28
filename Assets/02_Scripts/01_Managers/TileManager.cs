@@ -123,7 +123,60 @@ public class TileManager : MonoBehaviour
 
         return tiles[pos.x, pos.y];
     }
+    #region Pathfinding helpers (A*에서 사용)
 
+    // 그리드 범위 안에 있는지 검사하는 함수
+    public bool IsInsideBounds(Vector2Int pos)
+    {
+        return pos.x >= 0 && pos.x < width &&
+               pos.y >= 0 && pos.y < height;
+    }
+
+    // 타일 데이터 기준으로 이동 가능한지 여부 판단
+    // - 지뢰가 있으면 이동 불가
+    // - 열린 타일(Open)만 이동 가능
+    public bool IsWalkable(TileData tile)
+    {
+        if (tile == null)
+            return false;
+
+        if (tile.hasMine)
+            return false;
+
+        return tile.state == TileState.Open;
+    }
+
+    // 좌표 기준 오버로드
+    public bool IsWalkable(Vector2Int pos)
+    {
+        return IsWalkable(GetTile(pos));
+    }
+
+    // 4방향 이동에 사용할 방향 벡터
+    private static readonly Vector2Int[] fourDirections =
+    {
+    new Vector2Int(1, 0),
+    new Vector2Int(-1, 0),
+    new Vector2Int(0, 1),
+    new Vector2Int(0, -1)
+};
+
+    // A*에서 사용할 "이동 가능한 이웃 타일" 목록 반환
+    public IEnumerable<Vector2Int> GetWalkableNeighbors(Vector2Int pos)
+    {
+        foreach (var dir in fourDirections)
+        {
+            Vector2Int next = pos + dir;
+
+            if (!IsInsideBounds(next))
+                continue;
+
+            if (IsWalkable(next))
+                yield return next;
+        }
+    }
+
+    #endregion
     // 지뢰를 랜덤으로 배치하는 함수 (중앙 safe 영역은 항상 비워둠)
     private void PlaceMines()
     {

@@ -19,7 +19,9 @@ public class Monster : MonoBehaviour
 
     [Header("Runtime State")]
     public float currentHp;
-
+    [Tooltip("기본 이동 속도 (타일/초 기준)")]
+    public float moveSpeed = 2f;    // 타입별로 프리팹에서 값만 바꿔주면 됩니다.
+    
     // 이동/공격은 3주차에서 구현 예정
     // 여기서는 체력만 세팅해 둔다.
     public void Initialize(float hpMultiplier)

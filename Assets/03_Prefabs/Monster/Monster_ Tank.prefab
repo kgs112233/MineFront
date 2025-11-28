@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6228443744618605090}
   - component: {fileID: 6499262199161801600}
   - component: {fileID: 3633264859287003318}
+  - component: {fileID: 3842707606227209499}
   m_Layer: 0
   m_Name: Monster_ Tank
   m_TagString: Untagged
@@ -106,3 +107,18 @@ MonoBehaviour:
   type: 2
   baseHp: 5
   currentHp: 0
+  moveSpeed: 2
+--- !u!114 &3842707606227209499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4520547470105384657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f707244324927094b8f46a64d52c3073, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterMover
+  speedMultiplier: 1
+  arriveThreshold: 0.05
