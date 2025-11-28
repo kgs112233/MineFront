@@ -115,4 +115,9 @@ public class TileView : MonoBehaviour
             numberViews[pos] = null;
         }
     }
+    public Vector3 GetTileWorldPosition(Vector2Int gridPos)
+    {
+        Vector3Int cellPos = new Vector3Int(gridPos.x, gridPos.y, 0);
+        return tilemap.GetCellCenterWorld(cellPos);
+    }
 }
