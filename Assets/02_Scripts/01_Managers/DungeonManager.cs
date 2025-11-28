@@ -25,6 +25,9 @@ public class DungeonManager : MonoBehaviour
 
     // 현재 활성화된 던전 목록
     private readonly List<DungeonInstance> dungeons = new List<DungeonInstance>();
+    //외부에서 읽기 전용으로 던전 목록을 접근할 수 있게 하는 프로퍼티
+    public IReadOnlyList<DungeonInstance> Dungeons => dungeons;
+    public TileManager TileManager => tileManager;
 
     // 중앙 기지(2x2) 영역 좌표 집합
     private readonly HashSet<Vector2Int> baseArea = new HashSet<Vector2Int>();
@@ -201,5 +204,14 @@ public class DungeonManager : MonoBehaviour
         dungeons.Add(instance);
 
         Debug.Log($"[DungeonManager] 던전 생성: {pos}");
+    }
+    // [추가] 활성 던전 중 하나를 랜덤으로 반환 (없으면 null)
+    public DungeonInstance GetRandomDungeon()
+    {
+        if (dungeons == null || dungeons.Count == 0)
+            return null;
+
+        int index = Random.Range(0, dungeons.Count);
+        return dungeons[index];
     }
 }
