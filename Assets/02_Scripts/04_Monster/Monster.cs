@@ -1,5 +1,6 @@
 using UnityEngine;
-
+using System.Collections.Generic;
+using System.Collections;
 // 몬스터 종류
 public enum MonsterType
 {
@@ -13,7 +14,7 @@ public class Monster : MonoBehaviour
 {
     [Header("Basic Info")]
     public MonsterType type;
-
+    
     [Tooltip("기본 체력(스케일링 전)")]
     public float baseHp = 3f;
 
@@ -28,4 +29,34 @@ public class Monster : MonoBehaviour
     {
         currentHp = baseHp * hpMultiplier;
     }
+    // 활성 몬스터 목록 (ArrowTower가 탐색할 때 사용)
+    public static readonly List<Monster> ActiveMonsters = new List<Monster>();
+
+    private void OnEnable()
+    {
+        if (!ActiveMonsters.Contains(this))
+            ActiveMonsters.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        ActiveMonsters.Remove(this);
+    }
+
+    // 데미지 처리
+    public void TakeDamage(float dmg)
+    {
+        currentHp -= dmg;
+        Debug.Log($"[Monster] {type} 데미지: {dmg}, 남은 HP: {currentHp}");
+
+        if (currentHp <= 0)
+            Die();
+    }
+
+    private void Die()
+    {
+        Debug.Log($"[Monster] {type} 사망!");
+        Destroy(gameObject);
+    }
+
 }

@@ -23,30 +23,37 @@ public class TileInputController : MonoBehaviour
 
     private void Update()
     {
-
-
         // 에디터/플랫폼에 따라 Mouse.current 가 없을 수도 있으니 방어 코드
         if (Mouse.current == null)
             return;
-            
+
         // 1) GameManager가 존재하는지 확인
         var gm = GameManager.Instance;
-        if (gm != null)
-        {
-            // 2) 현재 모드가 "건설 모드"라면, 타일 조작을 막고 안내만 출력
-            if (gm.CurrentMode == GameMode.Build)
-            {
-                // 좌/우클릭을 누른 경우, 한 번만 안내 로그 출력
-                if (Mouse.current.leftButton.wasPressedThisFrame ||
-                    Mouse.current.rightButton.wasPressedThisFrame)
-                {
-                    Debug.Log("[TileInputController] 현재는 '건설 모드'입니다. 탐색 모드에서만 타일을 열 수 있습니다.");
-                }
 
-                // 건설 모드에서는 이 스크립트가 더 이상 입력을 처리하지 않음
-                return;
+        // -----------------------------
+        // A. 건설 모드 처리
+        // -----------------------------
+        if (gm != null && gm.CurrentMode == GameMode.Build)
+        {
+            // 좌클릭 → 건설 시도
+            if (Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                HandleBuildClick();
             }
+
+            // 우클릭은 건설 모드에서는 사용하지 않음
+            // (원하면 여기서 "건설 모드에서는 깃발 설치 불가" 안내 로그 출력 가능)
+            if (Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                Debug.Log("[TileInputController] 건설 모드에서는 깃발을 설치할 수 없습니다. 탐색 모드에서 우클릭하세요.");
+            }
+
+            return;
         }
+
+        // -----------------------------
+        // B. 탐색 모드 처리 (기존 로직)
+        // -----------------------------
 
         // 좌클릭 → 타일 열기
         if (Mouse.current.leftButton.wasPressedThisFrame)
@@ -82,6 +89,23 @@ public class TileInputController : MonoBehaviour
         // 3) 월드 → 타일 좌표
         Vector3Int cellPos = tilemap.WorldToCell(worldPos);
         return new Vector2Int(cellPos.x, cellPos.y);
+    }
+    // --------------------------------------------------------------------
+    // 건설 모드에서 좌클릭: 선택된 타워/병영 건설 시도
+    // --------------------------------------------------------------------
+    private void HandleBuildClick()
+    {
+        Vector2Int tilePos = GetClickedTilePos();
+        if (tilePos == InvalidPos)
+            return;
+
+        if (BuildManager.Instance == null)
+        {
+            Debug.LogWarning("[TileInputController] BuildManager 인스턴스를 찾을 수 없습니다.");
+            return;
+        }
+
+        BuildManager.Instance.TryBuildAt(tilePos);
     }
 
     // --------------------------------------------------------------------

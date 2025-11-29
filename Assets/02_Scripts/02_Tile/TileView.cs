@@ -120,4 +120,22 @@ public class TileView : MonoBehaviour
         Vector3Int cellPos = new Vector3Int(gridPos.x, gridPos.y, 0);
         return tilemap.GetCellCenterWorld(cellPos);
     }
+    // ----------------------------------------------
+    // 월드 좌표 → 타일 그리드 좌표 변환 함수 (TileManager에서 사용)
+    // ----------------------------------------------
+    public Vector3Int WorldToCell(Vector3 worldPos)
+    {
+        if (tilemap == null)
+            return Vector3Int.zero;
+
+        return tilemap.WorldToCell(worldPos);
+    }
+
+    public Vector3 GetCellCenterWorld(Vector3Int cellPos)
+    {
+        if (tilemap == null)
+            return Vector3.zero;
+
+        return tilemap.GetCellCenterWorld(cellPos);
+    }
 }

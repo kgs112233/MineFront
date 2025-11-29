@@ -145,6 +145,15 @@ public class TileManager : MonoBehaviour
 
         return tile.state == TileState.Open;
     }
+    public bool IsWalkableWorldPosition(Vector3 worldPos)
+    {
+        if (tileView == null)
+            return false;
+
+        Vector3Int cell = tileView.WorldToCell(worldPos);
+        TileData tile = GetTile(new Vector2Int(cell.x, cell.y));
+        return IsWalkable(tile);
+    }
 
     // 좌표 기준 오버로드
     public bool IsWalkable(Vector2Int pos)
